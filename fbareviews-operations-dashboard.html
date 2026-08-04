@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Fbareviews Operations Dashboard",
+  "schemaVersion": 1,
+  "description": "FBA Reviews operations dashboard — Testers, Sellers, Revenue. Updated 4 Aug 2026. Revenue through Aug 2026 (partial)."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FBA Reviews — Operations Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a18;font-size:14px;line-height:1.5}
+.header{background:#fff;border-bottom:1px solid #e5e5e0;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.subtitle{font-size:12px;color:#888;margin-top:1px}
+.updated{font-size:11px;color:#aaa;background:#f5f5f3;padding:3px 8px;border-radius:10px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e5e5e0;padding:0 24px;position:sticky;top:57px;z-index:9}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:#333}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18}
+.section{display:none;padding:24px}
+.section.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:24px}
+.metric{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #eee}
+.metric-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:600;color:#1a1a18}
+.metric-sub{font-size:11px;color:#aaa;margin-top:2px}
+.metric-delta{font-size:11px;margin-top:3px;font-weight:500}
+.du{color:#1D9E75}.dd{color:#E24B4A}.dn{color:#aaa}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.charts-row.full{grid-template-columns:1fr}
+@media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:10px;border:1px solid #eee;padding:16px 18px}
+.card-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+.chart-wrap{position:relative;width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#666}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.tbl-wrap{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{border-bottom:1px solid #e5e5e0}
+th{text-align:right;padding:6px 10px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:6px 10px;text-align:right;border-bottom:1px solid #f0f0ee;white-space:nowrap}
+td:first-child{text-align:left;font-weight:500}
+tr.yr-sep td{background:#f8f8f6;font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em;padding:4px 10px}
+tr.subtotal td{background:#f5f5f3;font-weight:600;border-top:1px solid #ddd}
+tr:hover td{background:#fafaf8}
+tr.yr-sep:hover td,tr.subtotal:hover td{background:inherit}
+.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
+.bb{background:#e8f0fd;color:#1a56db}
+.ba{background:#fef3c7;color:#92400e}
+.bg{background:#d1fae5;color:#065f46}
+.br{background:#fee2e2;color:#991b1b}
+.alert{background:#fef9c3;border-left:3px solid #ca8a04;border-radius:0 8px 8px 0;padding:8px 12px;font-size:12px;color:#713f12;margin-bottom:16px}
+.alert-red{background:#fee2e2;border-left:3px solid #dc2626;border-radius:0 8px 8px 0;padding:8px 12px;font-size:12px;color:#7f1d1d;margin-bottom:16px}
+.funnel-row{margin-bottom:8px}
+.funnel-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:#333}
+.funnel-track{background:#f0f0ee;border-radius:4px;height:18px;overflow:hidden}
+.funnel-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:17px;font-weight:600">FBA Reviews — Operations Dashboard</div>
+    <div class="subtitle">Testers · Sellers · Revenue &nbsp;|&nbsp; CSV export: 4 Aug 2026 &nbsp;|&nbsp; Revenue through Aug 2026 (partial)</div>
+  </div>
+  <div class="updated">Updated: 4 Aug 2026</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('testers',this)">Testers</div>
+  <div class="tab" onclick="switchTab('sellers',this)">Sellers</div>
+  <div class="tab" onclick="switchTab('revenue',this)">Revenue</div>
+</div>
+
+<!-- ══════════ TESTERS ══════════ -->
+<div id="testers" class="section active">
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Total registered</div><div class="metric-value">33,377</div>
+      <div class="metric-sub">All time</div><div class="metric-delta du">↑ +355 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Active status</div><div class="metric-value">7,127</div>
+      <div class="metric-sub">21.4% of all</div><div class="metric-delta du">↑ +60 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Stripe connected</div><div class="metric-value">2,840</div>
+      <div class="metric-sub">8.5% of all</div><div class="metric-delta du">↑ +261 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Stripe active rate</div><div class="metric-value">47.9%</div>
+      <div class="metric-sub">1,359 of 2,840 Stripe</div><div class="metric-delta dd">↓ −2.2pp vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total banned</div><div class="metric-value">6,103</div>
+      <div class="metric-sub">18.3% of all</div><div class="metric-delta dd">↑ +117 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Restricted</div><div class="metric-value">2,912</div>
+      <div class="metric-sub">8.7% of all</div><div class="metric-delta dn">↓ −1 vs last export</div>
+    </div>
+  </div>
+
+  <div class="alert">✅ Ban wave nearly over — Jul: 104 banned, Aug so far: only 22 (vs 1,450 in Jun peak). Active pool +60 to 7,127. Stripe network +261 to 2,840 testers. Active rate dipped to 47.9% as new cohorts mature; acquisition firmly outpacing attrition.</div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Monthly signups 2026 — all vs Stripe-connected</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>All signups</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Stripe signups</div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="tSignups"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Active Stripe testers — last delivery month 2026</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Active status</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(226,75,74,0.6)"></div>Banned (were delivering)</div>
+      </div>
+      <div class="chart-wrap" style="height:200px"><canvas id="tActive"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">2026 Stripe cohort conversion — % who completed ≥1 test</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="tConv"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">All-time signup-to-active funnel</div>
+      <div style="margin-top:12px">
+        <div class="funnel-row"><div class="funnel-label"><span>Registered</span><span>33,377</span></div><div class="funnel-track"><div class="funnel-fill" style="width:100%;background:#378ADD">100%</div></div></div>
+        <div class="funnel-row"><div class="funnel-label"><span>Completed ≥1 test</span><span>7,290</span></div><div class="funnel-track"><div class="funnel-fill" style="width:21.8%;background:#1D9E75">21.8%</div></div></div>
+        <div class="funnel-row"><div class="funnel-label"><span>Currently Active</span><span>7,127</span></div><div class="funnel-track"><div class="funnel-fill" style="width:21.4%;background:#5DCAA5">21.4%</div></div></div>
+        <div class="funnel-row"><div class="funnel-label"><span>Active + Stripe connected</span><span>2,840</span></div><div class="funnel-track"><div class="funnel-fill" style="width:8.5%;background:#0F6E56">8.5%</div></div></div>
+        <div class="funnel-row"><div class="funnel-label"><span>Rejected / Banned / Restricted</span><span>26,250</span></div><div class="funnel-track"><div class="funnel-fill" style="width:78.6%;background:#ccc;color:#666">78.6%</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Monthly ban rate by signup cohort — % eventually banned (2024–2026)</div>
+    <div class="chart-wrap" style="height:180px"><canvas id="tBanRate"></canvas></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Tests ordered per month — Jan 2025 to Aug 2026 (payments_orders)</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(55,138,221,0.7)"></div>2025</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>2026</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>Aug partial</div>
+    </div>
+    <div class="chart-wrap" style="height:200px"><canvas id="tDelivered"></canvas></div>
+    <p style="font-size:11px;color:#aaa;margin-top:8px">Apr 2026 spike (5,657 orders) reflects bulk campaign. Aug 2026 partial through Aug 3 (739 orders). Source: internal payments_orders system.</p>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Testers who delivered — by last delivery month (Jan 2025 – Aug 2026)</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Active status</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(226,75,74,0.55)"></div>Banned</div>
+    </div>
+    <div class="chart-wrap" style="height:200px"><canvas id="tTesterDelivered"></canvas></div>
+    <p style="font-size:11px;color:#aaa;margin-top:8px">Y-axis capped at 800. May: 2,011 banned (actual). Jun: 1,450 banned. Jul: 104 banned. Aug: 22 banned. Tooltips show actuals.</p>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Stripe-connected — cumulative total &amp; % active (Jan 2025 – Aug 2026)</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(55,138,221,0.5)"></div>Cumulative Stripe (left)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>% Active</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>% Completed ≥1 test</div>
+    </div>
+    <div class="chart-wrap" style="height:220px"><canvas id="tStripeGrowth"></canvas></div>
+    <p style="font-size:11px;color:#aaa;margin-top:8px">Snapshot: 2,840 Stripe total — 47.9% Active (1,359). Ban wave nearly over: Jul 104 banned, Aug 22 so far. Acquisition firmly outpacing attrition.</p>
+  </div>
+
+</div>
+
+<!-- ══════════ SELLERS ══════════ -->
+<div id="sellers" class="section">
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Total clients</div><div class="metric-value">7,845</div>
+      <div class="metric-sub">Since Dec 2021</div><div class="metric-delta du">↑ +33 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Paying clients</div><div class="metric-value">2,502</div>
+      <div class="metric-sub">31.9% conversion</div><div class="metric-delta dn">— stable</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2025 paying</div><div class="metric-value">445</div><div class="metric-sub">Full year (first payment)</div><div class="metric-delta dn">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2026 paying YTD</div><div class="metric-value">125</div>
+      <div class="metric-sub">Jan–Aug (first payment)</div><div class="metric-delta du">↑ +6 vs last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Jul signups</div><div class="metric-value">35</div>
+      <div class="metric-sub">Complete month</div><div class="metric-delta du">↑ vs 12 partial last export</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Aug signups</div><div class="metric-value">10</div>
+      <div class="metric-sub">Partial — through Aug 3</div><div class="metric-delta dn">—</div>
+    </div>
+  </div>
+
+  <div class="charts-row full">
+    <div class="card">
+      <div class="card-title">Monthly new signups vs paying clients — Jan 2025 to Aug 2026</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>New signups</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>New paying clients</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="sSignups"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Signup-to-paying conversion rate (%)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="sConv"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Monthly paying clients count</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="sPaying"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Total payments received per month — Jan 2025 to Aug 2026</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(55,138,221,0.7)"></div>2025</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>2026 (Stripe)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>Aug 2026 (partial)</div>
+    </div>
+    <div class="chart-wrap" style="height:200px"><canvas id="sTxns"></canvas></div>
+    <p style="font-size:11px;color:#aaa;margin-top:8px">Mar 2025 spike (345) reflects high-volume campaign month. Aug 2026 partial — through Aug 3 only (8 txns).</p>
+  </div>
+
+</div>
+
+<!-- ══════════ REVENUE ══════════ -->
+<div id="revenue" class="section">
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">All-time revenue</div><div class="metric-value">$2.60M</div><div class="metric-sub">Dec 2021–Aug 2026</div></div>
+    <div class="metric"><div class="metric-label">2024 (best year)</div><div class="metric-value">$905K</div><div class="metric-sub">Peak Oct: $107K</div></div>
+    <div class="metric"><div class="metric-label">2025 full year</div><div class="metric-value">$793K</div><div class="metric-sub">−12% vs 2024</div></div>
+    <div class="metric"><div class="metric-label">2026 YTD (Jan–Jul)</div><div class="metric-value">$363K</div><div class="metric-sub">Aug partial: +$4K</div></div>
+    <div class="metric"><div class="metric-label">Stripe fees Aug</div><div class="metric-value">$134</div><div class="metric-sub">3.13% rate (partial month)</div></div>
+    <div class="metric"><div class="metric-label">YoY (Jan–Jul)</div><div class="metric-value">−28%</div><div class="metric-sub">vs same period 2025</div></div>
+  </div>
+
+  <div class="charts-row full">
+    <div class="card">
+      <div class="card-title">Monthly revenue Jan 2025 – Aug 2026</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>2025 (payments_orders)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>2026 (Stripe, adj)</div>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="rRevenue"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">One-time vs subscription revenue 2025–2026</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>One-time</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5DCAA5"></div>Subscription</div>
+      </div>
+      <div class="chart-wrap" style="height:190px"><canvas id="rSplit"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avg revenue per transaction ($)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="rAvg"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Monthly revenue detail — Jan 2025 to Aug 2026</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="text-align:left">Month</th><th>Revenue</th><th>Net revenue</th><th>Refunds</th>
+          <th>One-time</th><th>Subscription</th><th>Transactions</th><th>Avg/txn</th><th>MoM</th>
+        </tr></thead>
+        <tbody id="revTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const gc='#e5e5e0',lc='#888';
+function switchTab(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');el.classList.add('active');
+}
+
+// ── TESTER DATA — all-testers(10).csv, 4 Aug 2026 ──
+const tMonths=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+const tAllSignups   =[261,224,314,364,427,747,604,30];
+const tStripeSignups=[19, 92, 167,179,194,428,364,17];
+const tActiveDelivered=[12,14,33,71,92,218,447,128];
+const tBannedActive   =[1, 2, 4, 16, 59, 128, 104, 22];
+const tConvRate=[36.8,18.5,21.6,26.3,16.0,10.1,12.9,0.0];
+
+new Chart(document.getElementById('tSignups'),{type:'bar',data:{labels:tMonths,datasets:[
+  {label:'All signups',   data:tAllSignups,    backgroundColor:'rgba(55,138,221,0.7)',borderRadius:3},
+  {label:'Stripe signups',data:tStripeSignups, backgroundColor:'rgba(29,158,117,0.9)',borderRadius:3}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc},grid:{color:gc}},y:{ticks:{color:lc},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('tActive'),{type:'bar',data:{labels:tMonths,datasets:[
+  {label:'Active',data:tActiveDelivered,backgroundColor:'#1D9E75',borderRadius:3},
+  {label:'Banned',data:tBannedActive,   backgroundColor:'rgba(226,75,74,0.55)',borderRadius:3}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc},grid:{color:gc}},y:{ticks:{color:lc},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('tConv'),{type:'line',data:{labels:tMonths,datasets:[{
+  label:'%',data:tConvRate,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.08)',
+  pointBackgroundColor:'#D85A30',borderWidth:2,tension:0.3,fill:true,pointRadius:5
+}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc},grid:{color:gc}},y:{min:0,max:45,ticks:{color:lc,callback:v=>v+'%'},grid:{color:gc}}}}});
+
+const banMonths=['Jan 24','Apr 24','Jul 24','Oct 24','Jan 25','Apr 25','Jul 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26'];
+const banRates=[16.6,15.7,17.8,14.5,24.1,8.5,7.7,31.6,43.5,25.3,0.5,5.7,5.3,3.9,1.4];
+new Chart(document.getElementById('tBanRate'),{type:'line',data:{labels:banMonths,datasets:[{
+  label:'%',data:banRates,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.08)',
+  pointBackgroundColor:banRates.map(v=>v>=40?'#A32D2D':'#E24B4A'),
+  pointRadius:banRates.map(v=>v>=40?6:3),borderWidth:2,tension:0.3,fill:true
+}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},
+          y:{min:0,max:55,ticks:{color:lc,callback:v=>v+'%'},grid:{color:gc}}}}});
+
+const tdMonths=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25',
+                'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26'];
+const tdTests=[5938,6888,7077,5966,5651,5315,4795,5254,4125,4554,3290,3830,
+               4015,2668,3126,5657,3465,3690,5095,739];
+new Chart(document.getElementById('tDelivered'),{type:'bar',
+  data:{labels:tdMonths,datasets:[{label:'Tests ordered',data:tdTests,
+    backgroundColor:tdMonths.map((m,i)=>i===19?'rgba(186,117,23,0.8)':m.includes('26')?'rgba(29,158,117,0.8)':'rgba(55,138,221,0.65)'),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+' orders'+(c.dataIndex===19?' (partial)':'')}}},
+    scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},
+            y:{ticks:{color:lc,callback:v=>v.toLocaleString()},grid:{color:gc}}}}});
+
+const ttdMonths=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25',
+                 'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26'];
+const ttdActive=[62,49,57,59,70,48,70,63,66,57,51,57, 55,20,34,80,102,223,447,128];
+const ttdActual=[14,3, 10, 7,10, 6, 5, 6, 9, 7,12, 4,  5, 3, 6,125,2011,1450,104,22];
+const ttdCapped=ttdActual.map(v=>Math.min(v,800));
+new Chart(document.getElementById('tTesterDelivered'),{type:'bar',
+  data:{labels:ttdMonths,datasets:[
+    {label:'Active',data:ttdActive, backgroundColor:'rgba(29,158,117,0.85)',borderRadius:3,stack:'s'},
+    {label:'Banned',data:ttdCapped, backgroundColor:'rgba(226,75,74,0.5)', borderRadius:3,stack:'s'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+      label:(c)=>{
+        if(c.datasetIndex===1){const a=ttdActual[c.dataIndex];return'Banned: '+a.toLocaleString()+(a>800?' (capped)':'');}
+        return'Active: '+c.parsed.y.toLocaleString();
+      },
+      footer:items=>'Total: '+(ttdActive[items[0].dataIndex]+ttdActual[items[0].dataIndex]).toLocaleString()
+    }}},
+    scales:{x:{stacked:true,ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},
+            y:{stacked:true,max:900,ticks:{color:lc},grid:{color:gc}}}}});
+
+const sgMonths=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25',
+                'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26'];
+const sgCumulative=[1094,1108,1128,1144,1161,1173,1191,1215,1243,1271,1318,1341,
+                    1360,1452,1619,1798,1992,2416,2823,2840];
+const sgPctActive=[73.7,73.6,73.8,73.9,73.6,73.1,73.1,72.7,72.2,71.6,71.0,70.6,
+                   70.1,67.0,63.2,59.9,56.2,50.3,48.0,47.9];
+const sgPctCompleted=[89.2,89.1,89.0,89.1,89.1,88.6,88.3,87.7,87.3,86.6,85.0,84.3,
+                      83.7,79.5,73.6,68.9,63.7,54.3,50.9,50.6];
+new Chart(document.getElementById('tStripeGrowth'),{type:'bar',
+  data:{labels:sgMonths,datasets:[
+    {type:'bar', label:'Cumulative',data:sgCumulative,backgroundColor:'rgba(55,138,221,0.2)',borderColor:'rgba(55,138,221,0.5)',borderWidth:1,borderRadius:2,yAxisID:'y'},
+    {type:'line',label:'% Active',  data:sgPctActive, borderColor:'#1D9E75',backgroundColor:'transparent',pointBackgroundColor:'#1D9E75',borderWidth:2,tension:0.3,pointRadius:3,yAxisID:'y2'},
+    {type:'line',label:'% Completed',data:sgPctCompleted,borderColor:'#BA7517',backgroundColor:'transparent',pointBackgroundColor:'#BA7517',borderWidth:2,tension:0.3,pointRadius:3,yAxisID:'y2'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y2'?c.dataset.label+': '+c.parsed.y.toFixed(1)+'%':c.dataset.label+': '+c.parsed.y.toLocaleString()}}},
+    scales:{
+      x:{ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},
+      y:{position:'left',ticks:{color:lc,callback:v=>v.toLocaleString()},grid:{color:gc},title:{display:true,text:'Total testers',color:lc,font:{size:10}}},
+      y2:{position:'right',min:40,max:100,ticks:{color:lc,callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'% of pool',color:lc,font:{size:10}}}
+    }}});
+
+// ── SELLER DATA — clients(6).csv, 4 Aug 2026 ──
+const sMonths=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25',
+               'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26'];
+const sSignups=[190,142,145,131,150,187,250,248,154,150,113,124, 114,198,88,69,100,77,35,10];
+const sPaying =[55, 40, 49, 49, 39, 35, 35, 28, 20, 17, 20, 17,  20, 18,14,16,20,12, 6, 0];
+const sConv   =[28.9,28.2,33.8,37.4,26.0,18.7,14.0,11.3,13.0,11.3,17.7,13.7, 17.5,9.1,15.9,23.2,20.0,15.6,17.1,0.0];
+
+new Chart(document.getElementById('sSignups'),{type:'bar',data:{labels:sMonths,datasets:[
+  {label:'Signups',data:sSignups,backgroundColor:'rgba(55,138,221,0.6)',borderRadius:2},
+  {label:'Paying', data:sPaying, backgroundColor:'rgba(29,158,117,0.9)',borderRadius:2}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},y:{ticks:{color:lc},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('sConv'),{type:'line',data:{labels:sMonths,datasets:[{
+  label:'%',data:sConv,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.08)',
+  pointBackgroundColor:sConv.map(v=>v<15?'#A32D2D':v>=35?'#085041':'#D85A30'),
+  pointRadius:sConv.map(v=>v<15||v>=35?5:3),borderWidth:2,tension:0.3,fill:true
+}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},
+          y:{min:0,max:50,ticks:{color:lc,callback:v=>v+'%'},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('sPaying'),{type:'bar',data:{labels:sMonths,datasets:[{
+  label:'Paying',data:sPaying,
+  backgroundColor:sPaying.map(v=>v>=50?'#1D9E75':v>=30?'#5DCAA5':'#BA7517'),borderRadius:3
+}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},y:{ticks:{color:lc},grid:{color:gc}}}}});
+
+// payments per month (Stripe txn count — 20-month window Jan 25–Aug 26)
+const sTxns=[221,214,345,206,197,190,185,161,152,160,137,134,142,119,113,126,113,116,121,8];
+const sTxnColors=sTxns.map((_,i)=>i===19?'rgba(186,117,23,0.85)':i>=12?'rgba(29,158,117,0.82)':'rgba(55,138,221,0.70)');
+new Chart(document.getElementById('sTxns'),{type:'bar',data:{labels:sMonths,datasets:[{
+  label:'Payments',data:sTxns,backgroundColor:sTxnColors,borderRadius:3
+}]},options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' payments'+(c.dataIndex===19?' (partial)':'')}}},
+  scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},
+          y:{ticks:{color:lc},grid:{color:gc}}}}});
+
+// ── REVENUE DATA (through Aug 2026 — Aug partial, through Aug 3) ──
+const revRows=[
+  {m:'Jan 2025',r:67159,ref:0,ot:44453,sub:22706,t:221,src:'po',adj:0},
+  {m:'Feb 2025',r:74582,ref:0,ot:58639,sub:15943,t:214,src:'po',adj:0},
+  {m:'Mar 2025',r:87441,ref:0,ot:37523,sub:49918,t:345,src:'po',adj:0},
+  {m:'Apr 2025',r:74064,ref:0,ot:47799,sub:26264,t:206,src:'po',adj:0},
+  {m:'May 2025',r:65259,ref:0,ot:40169,sub:25090,t:197,src:'po',adj:0},
+  {m:'Jun 2025',r:76460,ref:0,ot:52396,sub:24064,t:190,src:'po',adj:0},
+  {m:'Jul 2025',r:56465,ref:0,ot:33615,sub:22850,t:185,src:'po',adj:0},
+  {m:'Aug 2025',r:57252,ref:0,ot:32751,sub:24500,t:161,src:'po',adj:0},
+  {m:'Sep 2025',r:61081,ref:0,ot:35618,sub:25463,t:152,src:'po',adj:0},
+  {m:'Oct 2025',r:66379,ref:0,ot:39730,sub:26648,t:160,src:'po',adj:0},
+  {m:'Nov 2025',r:47405,ref:0,ot:10174,sub:37232,t:137,src:'po',adj:0},
+  {m:'Dec 2025',r:58995,ref:0,ot:37400,sub:21595,t:134,src:'po',adj:0},
+  {m:'Jan 2026',r:58800,ref:1217,ot:55610,sub:3190,t:142,src:'st',adj:0},
+  {m:'Feb 2026',r:47598,ref:0,ot:43046,sub:4552,t:119,src:'st',adj:0},
+  {m:'Mar 2026',r:45983,ref:0,ot:39988,sub:5995,t:113,src:'st',adj:0},
+  {m:'Apr 2026',r:66514,ref:179,ot:44867,sub:15484,t:126,src:'st',adj:6163},
+  {m:'May 2026',r:57582,ref:539,ot:45250,sub:12332,t:113,src:'st',adj:0},
+  {m:'Jun 2026',r:48205,ref:0,ot:43973,sub:4232,t:116,src:'st',adj:0},
+  {m:'Jul 2026',r:44577,ref:0,ot:42112,sub:2465,t:121,src:'st',adj:0},
+  {m:'Aug 2026',r:4281,ref:0,ot:3967,sub:314,t:8,src:'st',adj:0,partial:true},
+];
+const rLabels=revRows.map(d=>d.m),rRevs=revRows.map(d=>d.r-d.adj),rOt=revRows.map(d=>d.ot),rSub=revRows.map(d=>d.sub),rAvgs=revRows.map(d=>Math.round((d.r-d.adj)/d.t));
+new Chart(document.getElementById('rRevenue'),{type:'bar',data:{labels:rLabels,datasets:[{label:'Rev',data:rRevs,backgroundColor:rRevs.map((v,i)=>revRows[i].src==='st'?'rgba(29,158,117,0.85)':'rgba(55,138,221,0.7)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+Math.round(c.parsed.y).toLocaleString()}}},scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},y:{ticks:{color:lc,callback:v=>'$'+(v>=1000?Math.round(v/1000)+'K':v)},grid:{color:gc}}}}});
+new Chart(document.getElementById('rSplit'),{type:'bar',data:{labels:rLabels,datasets:[{label:'OT',data:rOt,backgroundColor:'rgba(55,138,221,0.7)',borderRadius:2},{label:'Sub',data:rSub,backgroundColor:'rgba(93,202,165,0.8)',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+Math.round(c.parsed.y).toLocaleString()}}},scales:{x:{stacked:true,ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},y:{stacked:true,ticks:{color:lc,callback:v=>'$'+(v>=1000?Math.round(v/1000)+'K':v)},grid:{color:gc}}}}});
+new Chart(document.getElementById('rAvg'),{type:'line',data:{labels:rLabels,datasets:[{label:'Avg',data:rAvgs,borderColor:'#BA7517',backgroundColor:'rgba(186,117,23,0.07)',pointBackgroundColor:'#BA7517',borderWidth:2,tension:0.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.parsed.y}}},scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},y:{ticks:{color:lc,callback:v=>'$'+v},grid:{color:gc}}}}});
+
+const tbody=document.getElementById('revTable');
+const fmt=v=>'$'+Math.round(v).toLocaleString(),pct=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
+const rCol=v=>v>=80000?'#065f46':v>=60000?'#1a1a18':v>=45000?'#92400e':'#991b1b';
+const mCol=v=>v>=0?'#065f46':'#991b1b';
+let t25r=0,t25t=0,t26r=0,t26ref=0,t26t=0,prevR=null;
+revRows.forEach(row=>{
+  const adjR=row.r-row.adj,mom=prevR!==null?(adjR-prevR)/prevR*100:null,net=adjR-row.ref;
+  if(row.m==='Jan 2025'){const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="9">2025 — payments orders</td>';tbody.appendChild(hr);}
+  if(row.m==='Jan 2026'){
+    const sr=document.createElement('tr');sr.className='subtotal';
+    sr.innerHTML=`<td>2025 total</td><td style="color:#065f46">${fmt(t25r)}</td><td style="color:#065f46">${fmt(t25r)}</td><td>—</td><td></td><td></td><td>${t25t.toLocaleString()}</td><td>$${Math.round(t25r/t25t)}</td><td>—</td>`;
+    tbody.appendChild(sr);
+    const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="9">2026 — Stripe</td>';tbody.appendChild(hr);
+  }
+  const tr=document.createElement('tr');
+  const srcB=row.src==='st'?'<span class="badge bb">Stripe</span>':'';
+  const adjB=row.adj>0?`<span class="badge ba">adj −$${Math.round(row.adj).toLocaleString()}</span>`:'';
+  const finB=row.m==='Jul 2026'?'<span class="badge bg">final</span>':row.partial?'<span class="badge ba">partial</span>':'';
+  tr.innerHTML=`<td>${row.m}${srcB}${adjB}${finB}</td><td style="font-weight:600;color:${rCol(adjR)}">${fmt(adjR)}</td><td>${fmt(net)}</td><td style="color:${row.ref>0?'#991b1b':'#aaa'}">${row.ref>0?'-$'+row.ref.toLocaleString():'-'}</td><td>${fmt(row.ot)}</td><td>${fmt(row.sub)}</td><td>${row.t}</td><td>$${Math.round(adjR/row.t)}</td><td style="color:${mom!==null?mCol(mom):'#aaa'}">${mom!==null?pct(mom):'—'}</td>`;
+  tbody.appendChild(tr);
+  prevR=adjR;
+  if(row.src==='po'){t25r+=adjR;t25t+=row.t;}else if(!row.partial){t26r+=adjR;t26ref+=row.ref;t26t+=row.t;}
+});
+const sr2=document.createElement('tr');sr2.className='subtotal';
+const yoy=((t26r/501430)-1)*100;
+sr2.innerHTML=`<td>2026 YTD (Jan–Jul)</td><td style="color:#92400e">${fmt(t26r)}</td><td>${fmt(t26r-t26ref)}</td><td style="color:#991b1b">-$${Math.round(t26ref).toLocaleString()}</td><td></td><td></td><td>${t26t}</td><td>$${Math.round(t26r/t26t)}</td><td style="color:#991b1b">${pct(yoy)} vs same period 2025</td>`;
+tbody.appendChild(sr2);
+</script>
+</body>
+</html>
