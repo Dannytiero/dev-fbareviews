@@ -79,6 +79,7 @@ tr.yr-sep:hover td,tr.subtotal:hover td{background:inherit}
   <div class="tab active" onclick="switchTab('testers',this)">Testers</div>
   <div class="tab" onclick="switchTab('sellers',this)">Sellers</div>
   <div class="tab" onclick="switchTab('revenue',this)">Revenue</div>
+  <div class="tab" onclick="switchTab('costs',this)">Product Costs</div>
 </div>
 
 <!-- ══════════ TESTERS ══════════ -->
@@ -306,9 +307,81 @@ tr.yr-sep:hover td,tr.subtotal:hover td{background:inherit}
       <table>
         <thead><tr>
           <th style="text-align:left">Month</th><th>Revenue</th><th>Net revenue</th><th>Refunds</th>
-          <th>One-time</th><th>Subscription</th><th>Transactions</th><th>Avg/txn</th><th>MoM</th>
+          <th>One-time</th><th>Subscription</th><th>Transactions</th><th>Avg/txn</th><th>MoM</th><th>YoY</th>
         </tr></thead>
         <tbody id="revTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ PRODUCT COSTS ══════════ -->
+<div id="costs" class="section">
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">2025 tests ordered</div><div class="metric-value">63,914</div>
+      <div class="metric-sub">Full year</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2026 tests YTD</div><div class="metric-value">32,933</div>
+      <div class="metric-sub">Jan–Aug (Aug partial)</div><div class="metric-delta dd">↓ −48.5% vs 2025 pace</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Credit rate</div><div class="metric-value">$31</div>
+      <div class="metric-sub">Per test credit (reimbursement)</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2025 product cost</div><div class="metric-value">$1.98M</div>
+      <div class="metric-sub">63,914 × $31 tester reimbursements</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2026 product cost YTD</div><div class="metric-value">$1.02M</div>
+      <div class="metric-sub">Jan–Aug partial</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">2025 avg take rate</div><div class="metric-value">28.6%</div>
+      <div class="metric-sub">Service fee / GMV</div>
+    </div>
+  </div>
+
+  <div class="alert">💡 Product cost = tests ordered × $31 tester reimbursement per test. GMV = product cost + platform service fee (revenue). Take rate = platform revenue ÷ GMV. 2025 GMV: $2.77M | 2026 YTD GMV: $1.43M. Test volume is the primary driver of tester reimbursement costs.</div>
+
+  <div class="charts-row full">
+    <div class="card">
+      <div class="card-title">Monthly GMV breakdown — product cost vs platform service fee (Jan 2025 – Aug 2026)</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(226,75,74,0.6)"></div>Product cost (tester reimbursements)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Platform service fee (revenue)</div>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="pcGMV"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Platform take rate % (service fee / GMV)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="pcTakeRate"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tests ordered per month (2025 vs 2026)</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(55,138,221,0.7)"></div>2025</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>2026</div>
+      </div>
+      <div class="chart-wrap" style="height:190px"><canvas id="pcTests"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Monthly product cost detail — Jan 2025 to Aug 2026</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="text-align:left">Month</th><th>Tests</th><th>Product Cost</th><th>Service Fee</th><th>GMV</th><th>Take Rate</th><th>Cost/Rev $</th><th>YoY Tests</th>
+        </tr></thead>
+        <tbody id="pcTable"></tbody>
       </table>
     </div>
   </div>
@@ -494,29 +567,108 @@ const tbody=document.getElementById('revTable');
 const fmt=v=>'$'+Math.round(v).toLocaleString(),pct=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
 const rCol=v=>v>=80000?'#065f46':v>=60000?'#1a1a18':v>=45000?'#92400e':'#991b1b';
 const mCol=v=>v>=0?'#065f46':'#991b1b';
+// Build prior-year lookup for YoY column
+const priorYearRev={};
+revRows.forEach(r=>{if(r.src==='po'){priorYearRev[r.m.split(' ')[0]]=r.r-r.adj;}});
 let t25r=0,t25t=0,t26r=0,t26ref=0,t26t=0,prevR=null;
 revRows.forEach(row=>{
   const adjR=row.r-row.adj,mom=prevR!==null?(adjR-prevR)/prevR*100:null,net=adjR-row.ref;
-  if(row.m==='Jan 2025'){const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="9">2025 — payments orders</td>';tbody.appendChild(hr);}
+  const priorR=row.src==='st'?priorYearRev[row.m.split(' ')[0]]:null;
+  const yoyVal=priorR!=null?(adjR-priorR)/priorR*100:null;
+  if(row.m==='Jan 2025'){const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="10">2025 — payments orders</td>';tbody.appendChild(hr);}
   if(row.m==='Jan 2026'){
     const sr=document.createElement('tr');sr.className='subtotal';
-    sr.innerHTML=`<td>2025 total</td><td style="color:#065f46">${fmt(t25r)}</td><td style="color:#065f46">${fmt(t25r)}</td><td>—</td><td></td><td></td><td>${t25t.toLocaleString()}</td><td>$${Math.round(t25r/t25t)}</td><td>—</td>`;
+    sr.innerHTML=`<td>2025 total</td><td style="color:#065f46">${fmt(t25r)}</td><td style="color:#065f46">${fmt(t25r)}</td><td>—</td><td></td><td></td><td>${t25t.toLocaleString()}</td><td>$${Math.round(t25r/t25t)}</td><td>—</td><td>—</td>`;
     tbody.appendChild(sr);
-    const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="9">2026 — Stripe</td>';tbody.appendChild(hr);
+    const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="10">2026 — Stripe</td>';tbody.appendChild(hr);
   }
   const tr=document.createElement('tr');
   const srcB=row.src==='st'?'<span class="badge bb">Stripe</span>':'';
   const adjB=row.adj>0?`<span class="badge ba">adj −$${Math.round(row.adj).toLocaleString()}</span>`:'';
   const finB=row.m==='Jul 2026'?'<span class="badge bg">final</span>':row.partial?'<span class="badge ba">partial</span>':'';
-  tr.innerHTML=`<td>${row.m}${srcB}${adjB}${finB}</td><td style="font-weight:600;color:${rCol(adjR)}">${fmt(adjR)}</td><td>${fmt(net)}</td><td style="color:${row.ref>0?'#991b1b':'#aaa'}">${row.ref>0?'-$'+row.ref.toLocaleString():'-'}</td><td>${fmt(row.ot)}</td><td>${fmt(row.sub)}</td><td>${row.t}</td><td>$${Math.round(adjR/row.t)}</td><td style="color:${mom!==null?mCol(mom):'#aaa'}">${mom!==null?pct(mom):'—'}</td>`;
+  const yoyCell=yoyVal!=null?`<td style="color:${mCol(yoyVal)};font-weight:600">${pct(yoyVal)}</td>`:'<td style="color:#aaa">—</td>';
+  tr.innerHTML=`<td>${row.m}${srcB}${adjB}${finB}</td><td style="font-weight:600;color:${rCol(adjR)}">${fmt(adjR)}</td><td>${fmt(net)}</td><td style="color:${row.ref>0?'#991b1b':'#aaa'}">${row.ref>0?'-$'+row.ref.toLocaleString():'-'}</td><td>${fmt(row.ot)}</td><td>${fmt(row.sub)}</td><td>${row.t}</td><td>$${Math.round(adjR/row.t)}</td><td style="color:${mom!==null?mCol(mom):'#aaa'}">${mom!==null?pct(mom):'—'}</td>${yoyCell}`;
   tbody.appendChild(tr);
   prevR=adjR;
   if(row.src==='po'){t25r+=adjR;t25t+=row.t;}else if(!row.partial){t26r+=adjR;t26ref+=row.ref;t26t+=row.t;}
 });
 const sr2=document.createElement('tr');sr2.className='subtotal';
 const yoy=((t26r/501430)-1)*100;
-sr2.innerHTML=`<td>2026 YTD (Jan–Jul)</td><td style="color:#92400e">${fmt(t26r)}</td><td>${fmt(t26r-t26ref)}</td><td style="color:#991b1b">-$${Math.round(t26ref).toLocaleString()}</td><td></td><td></td><td>${t26t}</td><td>$${Math.round(t26r/t26t)}</td><td style="color:#991b1b">${pct(yoy)} vs same period 2025</td>`;
+sr2.innerHTML=`<td>2026 YTD (Jan–Jul)</td><td style="color:#92400e">${fmt(t26r)}</td><td>${fmt(t26r-t26ref)}</td><td style="color:#991b1b">-$${Math.round(t26ref).toLocaleString()}</td><td></td><td></td><td>${t26t}</td><td>$${Math.round(t26r/t26t)}</td><td style="color:#991b1b">${pct(yoy)} vs same period 2025</td><td>—</td>`;
 tbody.appendChild(sr2);
+
+// ── PRODUCT COST DATA ──
+const pcMonths=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25',
+                'Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26'];
+const pcTests2025=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const pcTestsArr=[6111,6996,7201,6066,5731,5402,4928,5360,4193,4673,3352,3901,
+                  4100,2726,3438,5919,3496,3845,4629,4780];
+const CREDIT=31;
+const pcCostArr=pcTestsArr.map(t=>t*CREDIT);
+const pcRevArr=[67159,74582,87441,74064,65259,76460,56465,57252,61081,66379,47405,58995,
+                58800,47598,45983,66514,57582,48205,42356,45325];
+const pcGMVArr=pcTestsArr.map((t,i)=>t*CREDIT+pcRevArr[i]);
+const pcTakeRateArr=pcRevArr.map((r,i)=>(r/pcGMVArr[i]*100));
+const pcIs26=pcMonths.map(m=>m.includes('26'));
+
+new Chart(document.getElementById('pcGMV'),{type:'bar',
+  data:{labels:pcMonths,datasets:[
+    {label:'Product cost',data:pcCostArr,backgroundColor:pcIs26.map(b=>b?'rgba(226,75,74,0.55)':'rgba(226,75,74,0.35)'),borderRadius:2,stack:'g'},
+    {label:'Service fee', data:pcRevArr, backgroundColor:pcIs26.map(b=>b?'rgba(29,158,117,0.85)':'rgba(29,158,117,0.55)'),borderRadius:2,stack:'g'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+      label:c=>c.dataset.label+': $'+Math.round(c.parsed.y).toLocaleString(),
+      footer:items=>'GMV: $'+Math.round(pcGMVArr[items[0].dataIndex]).toLocaleString()
+    }}},
+    scales:{x:{stacked:true,ticks:{color:lc,maxRotation:45,autoSkip:false},grid:{color:gc}},
+            y:{stacked:true,ticks:{color:lc,callback:v=>'$'+(v>=1000?Math.round(v/1000)+'K':v)},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('pcTakeRate'),{type:'line',
+  data:{labels:pcMonths,datasets:[{
+    label:'Take rate',data:pcTakeRateArr,borderColor:'#BA7517',
+    backgroundColor:'rgba(186,117,23,0.08)',pointBackgroundColor:'#BA7517',
+    borderWidth:2,tension:0.3,fill:true,pointRadius:3
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}},
+    scales:{x:{ticks:{color:lc,maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{color:gc}},
+            y:{min:15,max:40,ticks:{color:lc,callback:v=>v+'%'},grid:{color:gc}}}}});
+
+const pc25=pcTestsArr.slice(0,12),pc26=pcTestsArr.slice(12);
+new Chart(document.getElementById('pcTests'),{type:'bar',
+  data:{labels:pcTests2025,datasets:[
+    {label:'2025',data:pc25,backgroundColor:'rgba(55,138,221,0.65)',borderRadius:3},
+    {label:'2026',data:pc26,backgroundColor:'rgba(29,158,117,0.85)',borderRadius:3}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:lc},grid:{color:gc}},y:{ticks:{color:lc,callback:v=>v.toLocaleString()},grid:{color:gc}}}}});
+
+// Product cost table
+const pcTbody=document.getElementById('pcTable');
+let pc25tests=0,pc26tests=0;
+pcMonths.forEach((mo,i)=>{
+  if(mo==='Jan 25'){const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="8">2025</td>';pcTbody.appendChild(hr);}
+  if(mo==='Jan 26'){
+    const sr=document.createElement('tr');sr.className='subtotal';
+    const tc25=pc25tests,cc25=tc25*CREDIT,rv25=pcRevArr.slice(0,12).reduce((a,b)=>a+b,0),gv25=cc25+rv25;
+    sr.innerHTML=`<td>2025 total</td><td>${tc25.toLocaleString()}</td><td>$${Math.round(cc25).toLocaleString()}</td><td>$${Math.round(rv25).toLocaleString()}</td><td>$${Math.round(gv25).toLocaleString()}</td><td>${(rv25/gv25*100).toFixed(1)}%</td><td>${(cc25/rv25).toFixed(2)}x</td><td>—</td>`;
+    pcTbody.appendChild(sr);
+    const hr=document.createElement('tr');hr.className='yr-sep';hr.innerHTML='<td colspan="8">2026 (Aug partial)</td>';pcTbody.appendChild(hr);
+  }
+  const tests=pcTestsArr[i],cost=tests*CREDIT,rev=pcRevArr[i],gmv=cost+rev,tr2=pcTakeRateArr[i];
+  const prior26=i>=12?pcTestsArr[i-12]:null;
+  const yoyT=prior26!=null?((tests-prior26)/prior26*100):null;
+  const tr=document.createElement('tr');
+  const partialBadge=mo==='Aug 26'?' <span class="badge ba">partial</span>':'';
+  tr.innerHTML=`<td>${mo}${partialBadge}</td><td>${tests.toLocaleString()}</td><td>$${Math.round(cost).toLocaleString()}</td><td>$${Math.round(rev).toLocaleString()}</td><td>$${Math.round(gmv).toLocaleString()}</td><td>${tr2.toFixed(1)}%</td><td>${(cost/rev).toFixed(2)}x</td><td style="color:${yoyT!=null?mCol(yoyT):'#aaa'}">${yoyT!=null?(yoyT>=0?'+':'')+yoyT.toFixed(1)+'%':'—'}</td>`;
+  pcTbody.appendChild(tr);
+  if(i<12)pc25tests+=tests;else pc26tests+=tests;
+});
+const pcSr2=document.createElement('tr');pcSr2.className='subtotal';
+const tc26=pc26tests,cc26=tc26*CREDIT,rv26=pcRevArr.slice(12).reduce((a,b)=>a+b,0),gv26=cc26+rv26;
+pcSr2.innerHTML=`<td>2026 YTD total</td><td>${tc26.toLocaleString()}</td><td>$${Math.round(cc26).toLocaleString()}</td><td>$${Math.round(rv26).toLocaleString()}</td><td>$${Math.round(gv26).toLocaleString()}</td><td>${(rv26/gv26*100).toFixed(1)}%</td><td>${(cc26/rv26).toFixed(2)}x</td><td>—</td>`;
+pcTbody.appendChild(pcSr2);
 </script>
 </body>
 </html>
